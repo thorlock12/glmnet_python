@@ -18,20 +18,20 @@ def cvlognet(fit, \
             ptype, \
             grouped, \
             keep = False):
-    
-    typenames = {'deviance':'Binomial Deviance', 'mse':'Mean-Squared Error', 
+
+    typenames = {'deviance':'Binomial Deviance', 'mse':'Mean-Squared Error',
                  'mae':'Mean Absolute Error', 'auc':'AUC', 'class':'Misclassification Error'}
     if ptype == 'default':
         ptype = 'deviance'
-        
-    ptypeList = ['mse', 'mae', 'deviance', 'auc', 'class']    
+
+    ptypeList = ['mse', 'mae', 'deviance', 'auc', 'class']
     if not ptype in ptypeList:
         print('Warning: only ', ptypeList, 'available for binomial models; ''deviance'' used')
         ptype = 'deviance'
 
     prob_min = 1.0e-5
     prob_max = 1 - prob_min
-    nc = y.shape[1]        
+    nc = y.shape[1]
     if nc == 1:
         classes, sy = scipy.unique(y, return_inverse = True)
         nc = len(classes)
@@ -39,7 +39,7 @@ def cvlognet(fit, \
         y = indexes[sy, :]
     else:
         classes = scipy.arange(nc) + 1 # 1:nc
-        
+
     N = y.size
     nfolds = scipy.amax(foldid) + 1
     if (N/nfolds < 10) and (type == 'auc'):
@@ -47,15 +47,15 @@ def cvlognet(fit, \
         print('Warning:     changed to type.measure = deviance. Alternately, use smaller value ')
         print('Warning:     for nfolds')
         ptype = 'deviance'
-    
-    if (N/nfolds < 3) and grouped:    
+
+    if (N/nfolds < 3) and grouped:
         print('Warning: option grouped = False enforced in cvglmnet as there are < 3 observations per fold')
         grouped = False
 
     is_offset = not(len(offset) == 0)
-    predmat = scipy.ones([y.shape[0], lambdau.size])*scipy.NAN               
+    predmat = scipy.ones([y.shape[0], lambdau.size])*scipy.NAN
     nfolds = scipy.amax(foldid) + 1
-    nlams = []    
+    nlams = []
     for i in range(nfolds):
         which = foldid == i
         fitobj = fit[i].copy()
@@ -86,7 +86,7 @@ def cvlognet(fit, \
     else:
         ywt = scipy.sum(y, axis = 1, keepdims = True)
         y = y/scipy.tile(ywt, [1, y.shape[1]])
-        weights = weights*ywt
+        weights = (weights*ywt.T).T
         N = y.shape[0] - scipy.sum(scipy.isnan(predmat), axis = 0, keepdims = True)
         yy1 = scipy.tile(y[:,0:1], [1, lambdau.size])
         yy2 = scipy.tile(y[:,1:2], [1, lambdau.size])
@@ -104,17 +104,17 @@ def cvlognet(fit, \
         cvraw = scipy.absolute(yy1 - (1 - predmat)) + scipy.absolute(yy2 - (1 - predmat))
     elif ptype == 'class':
         cvraw = yy1*(predmat > 0.5) + yy2*(predmat <= 0.5)
-    
+
     if y.size/nfolds < 3 and grouped == True:
         print('Option grouped=false enforced in cv.glmnet, since < 3 observations per fold')
         grouped = False
-        
+
     if grouped == True:
         cvob = cvcompute(cvraw, weights, foldid, nlams)
         cvraw = cvob['cvraw']
         weights = cvob['weights']
         N = cvob['N']
-        
+
     cvm = wtmean(cvraw, weights)
     sqccv = (cvraw - cvm)**2
     cvsd = scipy.sqrt(wtmean(sqccv, weights)/(N-1))
@@ -126,15 +126,15 @@ def cvlognet(fit, \
 
     if keep:
         result['fit_preval'] = predmat
-        
+
     return(result)
 
 # end of cvelnet
-#=========================    
+#=========================
 #
-#=========================    
+#=========================
 # Helper functions
-#=========================    
+#=========================
 def auc_mat(y, prob, weights = None):
     if weights == None or len(weights) == 0:
         weights = scipy.ones([y.shape[0], 1])
@@ -148,7 +148,7 @@ def auc_mat(y, prob, weights = None):
     pprob = scipy.vstack((prob,prob))
     result = auc(yy, pprob, wweights)
     return(result)
-#=========================    
+#=========================
 def auc(y, prob, w):
     if len(w) == 0:
         mindiff = scipy.amin(scipy.diff(scipy.unique(prob)))
@@ -169,5 +169,5 @@ def auc(y, prob, w):
         sumw = cw1[-1]
         sumw = sumw*(c1[-1] - sumw)
         result = wauc/sumw
-    return(result)    
-#=========================    
+    return(result)
+#=========================

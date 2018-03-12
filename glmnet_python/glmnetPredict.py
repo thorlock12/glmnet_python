@@ -13,10 +13,10 @@
 
     Fewer input arguments(more often) are allowed in the call, but must
     come in the order listed above. To set default values on the way, use
-    empty matrix []. 
+    empty matrix [].
     For example, pred=glmnetPredict(fit,[],[],'coefficients').
-   
-    To make EXACT prediction, the input arguments originally passed to 
+
+    To make EXACT prediction, the input arguments originally passed to
     "glmnet" MUST be VARIABLES (instead of expressions, or fields
     extracted from some struct objects). Alternatively, users should
     manually revise the "call" field in "object" (expressions or variable
@@ -28,7 +28,7 @@
              are required. Default is the entire sequence used to create
              the model.
  newx        scipy 2D array of new values for x at which predictions are to be
-             made. Must be a 2D array; can be sparse. This argument is not 
+             made. Must be a 2D array; can be sparse. This argument is not
              used for type='coefficients' or type='nonzero'.
  ptype       Type of prediction required. Type 'link' gives the linear
              predictors for 'binomial', 'multinomial', 'poisson' or 'cox'
@@ -43,7 +43,7 @@
              Type 'class' applies only to 'binomial' or 'multinomial'
              models, and produces the class label corresponding to the
              maximum probability. Type 'nonzero' returns a matrix of
-             logical values with each column for each value of s, 
+             logical values with each column for each value of s,
              indicating if the corresponding coefficient is nonzero or not.
  exact       If exact=false (default), then the predict function
              uses linear interpolation to make predictions for values of s
@@ -52,10 +52,10 @@
  offset      If an offset is used in the fit, then one must be supplied
              for making predictions (except for type='coefficients' or
              type='nonzero')
- 
+
  DETAILS:
     The shape of the objects returned are different for "multinomial"
-    objects. glmnetCoef(fit, ...) is equivalent to 
+    objects. glmnetCoef(fit, ...) is equivalent to
     glmnetPredict(fit,scipy.empty([]),scipy.empty([]),'coefficients").
 
  LICENSE: GPL-2
@@ -69,10 +69,10 @@
     Department of Statistics, Stanford University, Stanford, California, USA.
 
  REFERENCES:
-    Friedman, J., Hastie, T. and Tibshirani, R. (2008) Regularization Paths for Generalized Linear Models via Coordinate Descent, 
+    Friedman, J., Hastie, T. and Tibshirani, R. (2008) Regularization Paths for Generalized Linear Models via Coordinate Descent,
     http://www.jstatsoft.org/v33/i01/
     Journal of Statistical Software, Vol. 33(1), 1-22 Feb 2010
-    
+
     Simon, N., Friedman, J., Hastie, T., Tibshirani, R. (2011) Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent,
     http://www.jstatsoft.org/v39/i05/
     Journal of Statistical Software, Vol. 39(5) 1-13
@@ -90,18 +90,18 @@ EXAMPLES:
     y = scipy.random.normal(size = [100,1])
     g2 = scipy.random.choice(2, size = [100, 1])*1.0 # must be float64
     g4 = scipy.random.choice(4, size = [100, 1])*1.0 # must be float64
-    
+
     fit1 = glmnet(x = x.copy(),y = y.copy());
     print( glmnetPredict(fit1,x[0:5,:],scipy.array([0.01,0.005])) )
     print( glmnetPredict(fit1, scipy.empty([0]), scipy.empty([0]), 'coefficients') )
-    
+
     fit2 = glmnet(x = x.copy(), y = g2.copy(), family = 'binomial');
     print(glmnetPredict(fit2, x[2:5,:],scipy.empty([0]), 'response'))
     print(glmnetPredict(fit2, scipy.empty([0]), scipy.empty([0]), 'nonzero'))
-       
+
     fit3 = glmnet(x = x.copy(), y = g4.copy(), family = 'multinomial');
     print(glmnetPredict(fit3, x[0:3,:], scipy.array([0.01, 0.5]), 'response'))
-    
+
 """
 import scipy
 import scipy.interpolate
@@ -112,22 +112,22 @@ def glmnetPredict(fit,\
                   ptype = 'link', \
                   exact = False, \
                   offset = scipy.empty([0])):
-    
+
     typebase = ['link', 'response', 'coefficients', 'nonzero', 'class']
     indxtf   = [x.startswith(ptype.lower()) for x in typebase]
     indl     = [i for i in range(len(indxtf)) if indxtf[i] == True]
     ptype = typebase[indl[0]]
-    
+
     if newx.shape[0] == 0 and ptype != 'coefficients' and ptype != 'nonzero':
         raise ValueError('You need to supply a value for ''newx''')
-    
+
     # python 1D arrays are not the same as matlab 1xn arrays
-    # check for this. newx = x[0:1, :] is a python 2D array and would work; 
-    # but newx = x[0, :] is a python 1D array and should not be passed into 
-    # glmnetPredict    
+    # check for this. newx = x[0:1, :] is a python 2D array and would work;
+    # but newx = x[0, :] is a python 1D array and should not be passed into
+    # glmnetPredict
     if len(newx.shape) == 1 and newx.shape[0] > 0:
         raise ValueError('newx must be a 2D (not a 1D) python array')
-   
+
     if exact == True and len(s) > 0:
         # It is very messy to go back into the caller namespace
         # and call glmnet again. The user should really do this at their end
@@ -135,45 +135,49 @@ def glmnetPredict(fit,\
         # includes the lambda for which prediction is sought
         raise NotImplementedError('exact = True option is not implemented in python')
 
-    # we convert newx to full here since sparse and full operations do not seem to 
-    # be overloaded completely in scipy. 
-    if scipy.sparse.issparse(newx):
-        newx = newx.todense()
-    
+    # we convert newx to full here since sparse and full operations do not seem to
+    # be overloaded completely in scipy.
+#    if scipy.sparse.issparse(newx):
+#        newx = newx.todense()
+
     # elnet
     if fit['class'] in ['elnet', 'fishnet', 'lognet']:
         if fit['class'] == 'lognet':
             a0 = fit['a0']
-        else:    
+        else:
             a0 = scipy.transpose(fit['a0'])
-        
+
         a0 = scipy.reshape(a0, [1, a0.size])   # convert to 1 x N for appending
-        nbeta = scipy.row_stack( (a0, fit['beta']) )        
+        nbeta = scipy.row_stack( (a0, fit['beta']) )
         if scipy.size(s) > 0:
             lambdau = fit['lambdau']
             lamlist = lambda_interp(lambdau, s)
             nbeta = nbeta[:, lamlist['left']]*scipy.tile(scipy.transpose(lamlist['frac']), [nbeta.shape[0], 1]) \
             + nbeta[:, lamlist['right']]*( 1 - scipy.tile(scipy.transpose(lamlist['frac']), [nbeta.shape[0], 1]))
-            
+
         if ptype == 'coefficients':
             result = nbeta
             return(result)
-            
+
         if ptype == 'nonzero':
             result = nonzeroCoef(nbeta[1:nbeta.shape[0], :], True)
             return(result)
-        # use scipy.sparse.hstack instead of column_stack for sparse matrices        
-        result = scipy.dot(scipy.column_stack( (scipy.ones([newx.shape[0], 1]) \
-                              , newx) ) , nbeta)
+        # use scipy.sparse.hstack instead of column_stack for sparse matrices
+        if scipy.sparse.issparse(newx):
+            result = scipy.sparse.hstack((scipy.ones([newx.shape[0], 1]) \
+                                          , newx)).dot(nbeta)
+        else:
+            result = scipy.dot(scipy.column_stack( (scipy.ones([newx.shape[0], 1]) \
+                                , newx) ) , nbeta)
         if fit['offset']:
             if len(offset) == 0:
                 raise ValueError('No offset provided for prediction, yet used in fit of glmnet')
             if offset.shape[1] == 2:
                 offset = offset[:, 1]
-                
-            result = result + scipy.tile(offset, [1, result.shape[1]])    
 
-    # fishnet                
+            result = result + scipy.tile(offset, [1, result.shape[1]])
+
+    # fishnet
     if fit['class'] == 'fishnet' and ptype == 'response':
         result = scipy.exp(result)
 
@@ -192,12 +196,12 @@ def glmnetPredict(fit,\
             if type == 'response':
                 ptype = 'link'
             fit['grouped'] = True
-        
+
         a0 = fit['a0']
         nbeta = fit['beta'].copy()
         nclass = a0.shape[0]
         nlambda = s.size
-        
+
         if len(s) > 0:
             lambdau = fit['lambdau']
             lamlist = lambda_interp(lambdau, s)
@@ -209,12 +213,12 @@ def glmnetPredict(fit,\
         else:
             for i in range(nclass):
                 nbeta[i] = scipy.row_stack( (a0[i, :], nbeta[i]) )
-            nlambda = len(fit['lambdau'])    
+            nlambda = len(fit['lambdau'])
 
         if ptype == 'coefficients':
             result = nbeta
             return(result)
-            
+
         if ptype == 'nonzero':
             if fit['grouped']:
                 result = list()
@@ -224,9 +228,9 @@ def glmnetPredict(fit,\
                 result = list()
                 for i in range(nclass):
                     tn = nbeta[0].shape[0]
-                    result.append(nonzeroCoef(nbeta[0][1:tn, :], True))  
+                    result.append(nonzeroCoef(nbeta[0][1:tn, :], True))
             return(result)
-            
+
         npred = newx.shape[0]
         dp = scipy.zeros([nclass, nlambda, npred], dtype = scipy.float64)
         for i in range(nclass):
@@ -242,7 +246,7 @@ def glmnetPredict(fit,\
             toff = scipy.transpose(offset)
             for i in range(nlambda):
                 dp[:, i, :] = dp[:, i, :] + toff
-                
+
         if ptype == 'response':
             pp = scipy.exp(dp)
             psum = scipy.sum(pp, axis = 0, keepdims = True)
@@ -258,41 +262,41 @@ def glmnetPredict(fit,\
 
     # coxnet
     if fit['class'] == 'coxnet':
-        nbeta = fit['beta']        
+        nbeta = fit['beta']
         if len(s) > 0:
             lambdau = fit['lambdau']
             lamlist = lambda_interp(lambdau, s)
             nbeta = nbeta[:, lamlist['left']]*scipy.tile(scipy.transpose(lamlist['frac']), [nbeta.shape[0], 1]) \
             + nbeta[:, lamlist['right']]*( 1 - scipy.tile(scipy.transpose(lamlist['frac']), [nbeta.shape[0], 1]))
-            
+
         if ptype == 'coefficients':
             result = nbeta
             return(result)
-            
+
         if ptype == 'nonzero':
             result = nonzeroCoef(nbeta, True)
             return(result)
-        
+
         result = scipy.dot(newx * nbeta)
-        
+
         if fit['offset']:
             if len(offset) == 0:
-                raise ValueError('No offset provided for prediction, yet used in fit of glmnet')                              
+                raise ValueError('No offset provided for prediction, yet used in fit of glmnet')
 
-            result = result + scipy.tile(offset, [1, result.shape[1]])    
-        
+            result = result + scipy.tile(offset, [1, result.shape[1]])
+
         if ptype == 'response':
             result = scipy.exp(result)
 
     return(result)
-    
+
 # end of glmnetPredict
-# =========================================    
+# =========================================
 
 
 # =========================================
 # helper functions
-# =========================================    
+# =========================================
 def lambda_interp(lambdau, s):
 # lambda is the index sequence that is produced by the model
 # s is the new vector at which evaluations are required.
@@ -310,7 +314,7 @@ def lambda_interp(lambdau, s):
         s[s < scipy.amin(lambdau)] = scipy.amin(lambdau)
         k = len(lambdau)
         sfrac = (lambdau[0] - s)/(lambdau[0] - lambdau[k - 1])
-        lambdau = (lambdau[0] - lambdau)/(lambdau[0] - lambdau[k - 1]) 
+        lambdau = (lambdau[0] - lambdau)/(lambdau[0] - lambdau[k - 1])
         coord = scipy.interpolate.interp1d(lambdau, range(k))(sfrac)
         left = scipy.floor(coord).astype(scipy.integer, copy = False)
         right = scipy.ceil(coord).astype(scipy.integer, copy = False)
@@ -322,15 +326,15 @@ def lambda_interp(lambdau, s):
         #    sfrac = (sfrac - lambdau[right])/(lambdau[left] - lambdau[right])
         #else:
         #    sfrac[left == right] = 1.0
-        
-    result = dict()    
+
+    result = dict()
     result['left'] = left
     result['right'] = right
     result['frac'] = sfrac
-    
+
     return(result)
-# end of lambda_interp    
-# =========================================    
+# end of lambda_interp
+# =========================================
 def softmax(x, gap = False):
    d = x.shape
    maxdist = x[:, 0]
@@ -344,7 +348,7 @@ def softmax(x, gap = False):
        x[0:d[0], pclass] = x*scipy.ones([d[1], d[1]])
        #gaps = pmin(x)# not sure what this means; gap is never called with True
        raise ValueError('gap = True is not implemented yet')
-    
+
    result = dict()
    if gap == True:
        result['pclass'] = pclass
@@ -352,15 +356,15 @@ def softmax(x, gap = False):
        raise ValueError('gap = True is not implemented yet')
    else:
        result['pclass'] = pclass;
-  
+
    return(result)
 # end of softmax
-# =========================================    
+# =========================================
 def nonzeroCoef(beta, bystep = False):
     result = scipy.absolute(beta) > 0
     if not bystep:
         result = scipy.any(result, axis = 1)
-    return(result)    
+    return(result)
 # end of nonzeroCoef
-# =========================================    
-     
+# =========================================
+
